@@ -1,73 +1,1100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Area52 MTG Singles</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Area52 MTG Singles — Live Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f14;--surface:#161922;--surface2:#1e2330;--surface3:#252a3a;
+  --border:#2a3045;--border2:#3a4460;
+  --accent:#c8a84b;--accent2:#7b9cdc;--accent3:#4ade80;
+  --text:#dde3f0;--muted:#6b7694;--muted2:#8899aa;
+  --danger:#e05c5c;--warn:#f59e0b;
+  --nm-bg:#1a3d2e;--lp-bg:#3a2e0a;--mp-bg:#3a1f0a;--hp-bg:#3a1010;--dmg-bg:#2e102e;
+  --mythic:#e8834a;--rare:#c8a84b;--uncommon:#7b9cdc;--common:#8899aa;
+  --W:#f5e6c8;--U:#5b9bd5;--B:#9b59b6;--R:#e05c5c;--G:#4caf76;--C:#95a5a6;--M:#e8834a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Source Sans 3',sans-serif;font-size:14px;min-height:100vh}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#0d0f14,#1a1d28,#0d0f14);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0}
+.h-title{font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--accent);letter-spacing:.05em}
+.h-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.h-tabs{display:flex;gap:2px;margin-left:auto}
+.tab-btn{padding:6px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Cinzel',serif;font-size:11px;font-weight:600;letter-spacing:.04em;cursor:pointer;border-radius:3px;transition:all .15s;position:relative}
+.tab-btn:hover{color:var(--text);border-color:var(--border2)}
+.tab-btn.active{background:var(--accent);color:#0d0f14;border-color:var(--accent)}
+.h-actions{display:flex;gap:8px}
+
+/* STATUS BAR */
+#status-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:7px 20px;display:flex;gap:20px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column}
+.stat-val{font-size:16px;font-weight:700;color:var(--accent);font-family:'Cinzel',serif}
+.stat-lbl{color:var(--muted);font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+#load-wrap{flex:1;display:flex;align-items:center;gap:8px;margin-left:auto}
+#progress-track{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;max-width:180px}
+#progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px;width:0%;transition:width .3s}
+#progress-text{font-size:11px;color:var(--muted);white-space:nowrap}
+
+/* PANELS */
+.panel{display:none;flex:1;overflow:hidden;flex-direction:column}
+.panel.active{display:flex}
+
+/* FILTER BAR */
+#filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;flex-shrink:0}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+input,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 9px;border-radius:4px;font-size:12px;font-family:inherit;outline:none;transition:border-color .15s}
+input:focus,select:focus{border-color:var(--accent2)}
+input[type=text]{width:190px}
+input[type=number]{width:72px}
+select{min-width:110px;cursor:pointer}
+
+/* RESULT BAR */
+#result-bar{padding:7px 20px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);background:var(--bg);gap:10px;flex-wrap:wrap;flex-shrink:0}
+#result-count{color:var(--text);font-weight:600}
+#pagination{display:flex;align-items:center;gap:6px}
+#pagination select{padding:3px 7px;min-width:65px}
+
+/* TABLE */
+#table-wrap{overflow:auto;flex:1}
+table{width:100%;border-collapse:collapse;min-width:900px}
+thead th{background:var(--surface);color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;padding:9px 12px;border-bottom:2px solid var(--border);text-align:left;white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:5}
+thead th:hover{color:var(--text)}
+thead th.asc::after{content:' ↑';color:var(--accent)}
+thead th.desc::after{content:' ↓';color:var(--accent)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .08s}
+tbody tr:hover{background:var(--surface)}
+tbody tr.wishlisted{background:#1a2a1a}
+tbody tr.wishlisted:hover{background:#1f321f}
+tbody tr.new-card td:first-child{border-left:3px solid var(--accent3)}
+td{padding:8px 12px;vertical-align:middle}
+.card-name-cell{max-width:260px}
+.cn{font-weight:600;color:var(--text)}
+.cn a{color:inherit;text-decoration:none;transition:color .15s}
+.cn a:hover{color:var(--accent)}
+.cs{font-size:11px;color:var(--muted);margin-top:1px;display:flex;align-items:center;gap:5px}
+.set-age{font-size:9px;padding:1px 5px;border-radius:2px;font-weight:600;letter-spacing:.03em}
+.age-new{background:#1a3a1a;color:var(--accent3)}
+.age-recent{background:#2a2a1a;color:var(--warn)}
+.age-old{background:var(--surface2);color:var(--muted)}
+.foil-tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:2px;background:linear-gradient(135deg,#2a3060,#4a3a20);color:var(--accent);border:1px solid #4a4020;margin-left:4px;vertical-align:middle;letter-spacing:.04em;font-weight:700;text-transform:uppercase}
+.new-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:2px;background:#1a3a1a;color:var(--accent3);border:1px solid #2d6a4f;margin-left:4px;vertical-align:middle;font-weight:700}
+.wish-star{cursor:pointer;font-size:14px;opacity:.25;transition:opacity .15s;user-select:none;padding:0 2px}
+.wish-star:hover{opacity:.8}
+.wish-star.on{opacity:1;color:var(--accent)}
+
+/* CONDITION BADGES */
+.cond{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap}
+.nm  {background:var(--nm-bg);color:#4ade80}
+.nmf {background:#142e1e;color:#4ade80;border:1px solid #2d6a4f}
+.lp  {background:var(--lp-bg);color:#fbbf24}
+.lpf {background:#2a1e04;color:#fbbf24;border:1px solid #d4a017}
+.mp  {background:var(--mp-bg);color:#fb923c}
+.mpf {background:#2a1004;color:#fb923c;border:1px solid #c8621a}
+.hp  {background:var(--hp-bg);color:#f87171}
+.hpf {background:#2a0808;color:#f87171;border:1px solid #b33a3a}
+.dmg {background:var(--dmg-bg);color:#c084fc}
+.dmgf{background:#1e0a1e;color:#c084fc;border:1px solid #8b3a8b}
+
+/* RARITY */
+.rar{font-size:11px;font-weight:700;letter-spacing:.02em}
+.rM{color:var(--mythic)}.rR{color:var(--rare)}.rU{color:var(--uncommon)}.rC{color:var(--common)}
+
+/* COLOR PIP */
+.pip{display:inline-block;width:14px;height:14px;border-radius:50%;font-size:8px;line-height:14px;text-align:center;font-weight:700;color:#0d0f14;vertical-align:middle}
+.pW{background:var(--W)}.pU{background:var(--U)}.pB{background:var(--B)}.pR{background:var(--R)}.pG{background:var(--G)}.pC{background:var(--C)}.pM{background:var(--M)}
+
+/* PRICES */
+.price{font-weight:700;color:var(--accent);font-family:'Cinzel',serif;font-size:12px;white-space:nowrap}
+.mkt{font-size:11px;color:var(--muted);white-space:nowrap}
+.deal{color:#4ade80!important;font-weight:700}
+.pricey{color:var(--danger)!important}
+
+/* GROUPED ROW */
+.group-row{background:var(--surface)!important}
+.group-row:hover{background:var(--surface2)!important}
+.group-expand{cursor:pointer;color:var(--muted);font-size:11px;white-space:nowrap}
+.group-expand:hover{color:var(--text)}
+.group-sub{background:var(--bg)!important}
+.group-sub:hover{background:var(--surface)!important}
+.group-sub td:first-child{padding-left:32px}
+
+/* PREVIEW */
+#preview{position:fixed;z-index:1000;pointer-events:none;display:none;filter:drop-shadow(0 8px 24px rgba(0,0,0,.8))}
+#preview img{width:200px;border-radius:10px;display:block}
+
+/* PANELS */
+.panel-body{padding:20px;overflow-y:auto;flex:1}
+
+/* WISHLIST */
+.wl-header{display:flex;align-items:flex-start;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+.wl-input-wrap{flex:1;min-width:280px}
+.wl-input-wrap label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600}
+#wl-input{width:100%;height:130px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px;font-family:'Source Sans 3',sans-serif;font-size:13px;resize:vertical;outline:none;line-height:1.6}
+#wl-input:focus{border-color:var(--accent2)}
+.wl-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
+.wl-import-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center}
+#mox-url{flex:1;min-width:220px}
+.wl-stats{display:flex;gap:12px;flex-wrap:wrap}
+.wl-stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 16px;text-align:center;min-width:100px}
+.wl-stat-val{font-size:20px;font-weight:700;font-family:'Cinzel',serif;color:var(--accent)}
+.wl-stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.wl-stat-val.green{color:var(--accent3)}
+.wl-stat-val.red{color:var(--danger)}
+.wl-section{margin-top:16px}
+.wl-section-title{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);letter-spacing:.04em}
+.wl-card{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:5px;margin-bottom:5px;transition:border-color .15s}
+.wl-card:hover{border-color:var(--border2)}
+.wl-card.found{border-left:3px solid var(--accent3)}
+.wl-card.notfound{opacity:.55}
+.wl-card img{width:34px;border-radius:3px;flex-shrink:0}
+.wl-card-info{flex:1;min-width:0}
+.wl-card-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-card-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.wl-card-right{text-align:right;flex-shrink:0}
+.wl-card-price{font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--accent)}
+.wl-card-mkt{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* CART */
+.cart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.cart-header h2{font-family:'Cinzel',serif;font-size:15px;color:var(--accent)}
+.cart-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:5px;margin-bottom:5px}
+.cart-item img{width:34px;border-radius:3px;flex-shrink:0}
+.cart-item-info{flex:1;min-width:0}
+.cart-item-name{font-weight:600}
+.cart-item-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.cart-item-price{font-family:'Cinzel',serif;font-weight:700;color:var(--accent);white-space:nowrap}
+.cart-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 8px;border-radius:3px;transition:color .15s}
+.cart-remove:hover{color:var(--danger)}
+.cart-total-bar{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.cart-total-lbl{font-family:'Cinzel',serif;font-size:13px}
+.cart-total-val{font-family:'Cinzel',serif;font-size:22px;font-weight:700;color:var(--accent)}
+.cart-empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.cart-empty .icon{font-size:36px;margin-bottom:10px}
+
+/* BUTTONS */
+.btn{padding:6px 14px;border-radius:4px;border:none;font-family:'Cinzel',serif;font-size:11px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#0d0f14}.btn-primary:hover{background:#dbbf5a}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'Source Sans 3',sans-serif;font-size:12px}.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-sm{padding:3px 10px;font-size:10px}
+.btn-xs{padding:2px 7px;font-size:9px}
+
+/* MISC */
+#empty{text-align:center;padding:60px 20px;color:var(--muted);display:none}
+#empty .icon{font-size:36px;margin-bottom:10px}
+#empty h3{font-family:'Cinzel',serif;color:var(--text);margin-bottom:5px}
+#loading{text-align:center;padding:50px 20px;color:var(--muted)}
+.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge{display:inline-block;background:var(--danger);color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;vertical-align:middle}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 18px;border-radius:6px;font-size:13px;z-index:2000;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+.kbd{display:inline-block;background:var(--surface2);border:1px solid var(--border2);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--muted);font-family:monospace}
+</style>
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <h1>Area52 MTG Singles</h1>
-      <p class="subtitle">In-stock Magic: The Gathering singles from <a href="https://singles.area52.com.au" target="_blank">singles.area52.com.au</a></p>
-    </div>
-  </header>
+<div id="app">
 
-  <main>
-    <div class="controls">
-      <div class="search-row">
-        <input type="text" id="search" placeholder="Search card name..." autocomplete="off">
-        <div class="stats" id="stats">Loading...</div>
+<header>
+  <div>
+    <div class="h-title">⚔ Area52 MTG Singles</div>
+    <div class="h-sub">Live inventory · singles.area52.com.au · Hobart, Tasmania</div>
+  </div>
+  <div class="h-tabs">
+    <button class="tab-btn active" onclick="showPanel('browse',this)">Browse</button>
+    <button class="tab-btn" onclick="showPanel('wishlist',this)">Wishlist <span id="wl-badge" class="badge" style="display:none">0</span></button>
+    <button class="tab-btn" onclick="showPanel('cart',this)">Cart <span id="cart-badge" class="badge" style="display:none">0</span></button>
+  </div>
+  <div class="h-actions">
+    <button class="btn btn-secondary" onclick="refresh()" id="btn-refresh">↻ Refresh</button>
+    <button class="btn btn-primary" id="btn-export" onclick="exportCSV()" disabled>Export CSV</button>
+  </div>
+</header>
+
+<div id="status-bar">
+  <div class="stat"><span class="stat-val" id="st-total">—</span><span class="stat-lbl">In Stock</span></div>
+  <div class="stat"><span class="stat-val" id="st-new">—</span><span class="stat-lbl">New (7d)</span></div>
+  <div class="stat"><span class="stat-val" id="st-sets">—</span><span class="stat-lbl">Sets</span></div>
+  <div class="stat"><span class="stat-val" id="st-avg">—</span><span class="stat-lbl">Avg Price</span></div>
+  <div class="stat"><span class="stat-val" id="st-scryfall" style="color:var(--muted)">—</span><span class="stat-lbl">Scryfall Prices</span></div>
+  <div id="load-wrap">
+    <div id="progress-track"><div id="progress-fill"></div></div>
+    <span id="progress-text">Loading…</span>
+  </div>
+</div>
+
+<!-- BROWSE PANEL -->
+<div id="panel-browse" class="panel active">
+  <div id="filter-bar">
+    <div class="fg"><label>Search <span class="kbd">/</span></label><input type="text" id="f-search" placeholder="Card name or set…" oninput="applyFilters()"></div>
+    <div class="fg"><label>Set</label><select id="f-set" onchange="applyFilters()"><option value="">All Sets</option></select></div>
+    <div class="fg"><label>Rarity</label>
+      <select id="f-rarity" onchange="applyFilters()">
+        <option value="">All</option><option>Mythic</option><option>Rare</option><option>Uncommon</option><option>Common</option>
+      </select>
+    </div>
+    <div class="fg"><label>Color</label>
+      <select id="f-color" onchange="applyFilters()">
+        <option value="">All</option><option>White</option><option>Blue</option><option>Black</option>
+        <option>Red</option><option>Green</option><option>Multicolor</option><option>Colorless</option>
+      </select>
+    </div>
+    <div class="fg"><label>Condition</label>
+      <select id="f-cond" onchange="applyFilters()">
+        <option value="">All</option><option>Near Mint</option><option>Near Mint Foil</option>
+        <option>Lightly Played</option><option>Lightly Played Foil</option>
+        <option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option>
+      </select>
+    </div>
+    <div class="fg"><label>Foil</label>
+      <select id="f-foil" onchange="applyFilters()">
+        <option value="">All</option><option value="foil">Foil Only</option><option value="nonfoil">Non-Foil Only</option>
+      </select>
+    </div>
+    <div class="fg"><label>Added</label>
+      <select id="f-age" onchange="applyFilters()">
+        <option value="">Any time</option>
+        <option value="7">Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+    </div>
+    <div class="fg"><label>Min $</label><input type="number" id="f-min" placeholder="0" min="0" oninput="applyFilters()"></div>
+    <div class="fg"><label>Max $</label><input type="number" id="f-max" placeholder="∞" min="0" oninput="applyFilters()"></div>
+    <div class="fg"><label>Value</label>
+      <select id="f-value" onchange="applyFilters()">
+        <option value="">Any</option>
+        <option value="deal">Deals (&lt;80% market)</option>
+        <option value="pricey">Pricey (&gt;120% market)</option>
+      </select>
+    </div>
+    <div class="fg"><label>View</label>
+      <select id="f-group" onchange="applyFilters()">
+        <option value="flat">All conditions</option>
+        <option value="grouped">Grouped by card</option>
+      </select>
+    </div>
+    <div class="fg"><label>Wishlist</label>
+      <select id="f-wishlist" onchange="applyFilters()">
+        <option value="">All cards</option>
+        <option value="wishlist">Wishlist only</option>
+      </select>
+    </div>
+    <div class="fg"><label>&nbsp;</label><button class="btn btn-ghost" onclick="clearFilters()">Clear <span class="kbd">Esc</span></button></div>
+  </div>
+
+  <div id="result-bar">
+    <span><span id="result-count">—</span> results</span>
+    <div id="pagination">
+      <span style="color:var(--muted)">Rows:</span>
+      <select id="page-size" onchange="changePage(1)">
+        <option value="50">50</option><option value="100" selected>100</option>
+        <option value="250">250</option><option value="500">500</option>
+      </select>
+      <button class="btn btn-ghost" id="btn-prev" onclick="changePage(currentPage-1)">‹</button>
+      <span id="page-info" style="color:var(--muted)">—</span>
+      <button class="btn btn-ghost" id="btn-next" onclick="changePage(currentPage+1)">›</button>
+    </div>
+  </div>
+
+  <div id="table-wrap">
+    <div id="loading"><div class="spinner"></div><p>Fetching live inventory from Area52…</p></div>
+    <div id="empty"><div class="icon">🔍</div><h3>No cards found</h3><p>Try adjusting your filters</p></div>
+    <table id="main-table" style="display:none">
+      <thead><tr>
+        <th style="width:28px;cursor:default"></th>
+        <th onclick="sortBy('name')" data-col="name">Card Name</th>
+        <th onclick="sortBy('rarity')" data-col="rarity">Rar</th>
+        <th onclick="sortBy('color')" data-col="color">Color</th>
+        <th onclick="sortBy('cond')" data-col="cond">Condition</th>
+        <th onclick="sortBy('price')" data-col="price">Area52</th>
+        <th onclick="sortBy('mkt')" data-col="mkt">Market USD</th>
+        <th onclick="sortBy('diff')" data-col="diff">vs Mkt</th>
+        <th onclick="sortBy('added')" data-col="added">Added</th>
+        <th style="width:55px;cursor:default">Cart</th>
+      </tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- WISHLIST PANEL -->
+<div id="panel-wishlist" class="panel">
+  <div class="panel-body">
+    <div class="wl-header">
+      <div class="wl-input-wrap">
+        <label>Want List — one card name per line</label>
+        <textarea id="wl-input" placeholder="4 Lightning Bolt&#10;2 Counterspell&#10;Force of Will&#10;Black Lotus" oninput="updateWishlist()"></textarea>
+        <div class="wl-hint">Supports quantities: <code>4 Lightning Bolt</code> · <code>4x Lightning Bolt</code> · Ignores set codes, collector numbers, and comments after the name.</div>
+        <div class="wl-import-row">
+          <input type="text" id="mox-url" placeholder="Moxfield deck URL (moxfield.com/decks/…)">
+          <button class="btn btn-secondary" onclick="importMoxfield()">Import Moxfield</button>
+          <button class="btn btn-ghost" onclick="clearWishlist()">Clear</button>
+        </div>
       </div>
-      <div class="filter-row">
-        <select id="filter-set"><option value="">All Sets</option></select>
-        <select id="filter-condition"><option value="">All Conditions</option></select>
-        <select id="filter-stock">
-          <option value="">All Stock</option>
-          <option value="Yes" selected>In Stock</option>
-          <option value="No">Out of Stock</option>
-        </select>
-        <select id="sort-by">
-          <option value="name-asc">Name A-Z</option>
-          <option value="name-desc">Name Z-A</option>
-          <option value="price-asc">Price Low-High</option>
-          <option value="price-desc">Price High-Low</option>
-          <option value="set-asc">Set A-Z</option>
-        </select>
-        <button id="reset-btn" title="Reset filters">Reset</button>
+      <div class="wl-stats">
+        <div class="wl-stat"><div class="wl-stat-val green" id="wl-found">0</div><div class="wl-stat-lbl">In Stock</div></div>
+        <div class="wl-stat"><div class="wl-stat-val red" id="wl-missing">0</div><div class="wl-stat-lbl">Not Found</div></div>
+        <div class="wl-stat"><div class="wl-stat-val" id="wl-total-cards">0</div><div class="wl-stat-lbl">Cards Wanted</div></div>
+        <div class="wl-stat"><div class="wl-stat-val" id="wl-best-price">—</div><div class="wl-stat-lbl">Best Total</div></div>
+        <div class="wl-stat"><button class="btn btn-secondary" style="margin-top:4px" onclick="addAllWishlistToCart()">Add All to Cart</button></div>
       </div>
     </div>
+    <div id="wl-results"></div>
+  </div>
+</div>
 
-    <div class="table-wrap">
-      <table id="card-table">
-        <thead>
-          <tr>
-            <th class="col-name">Card Name</th>
-            <th class="col-set">Set</th>
-            <th class="col-condition">Condition</th>
-            <th class="col-price">Price (AUD)</th>
-            <th class="col-stock">In Stock</th>
-            <th class="col-qty">Qty</th>
-            <th class="col-sku">SKU</th>
-          </tr>
-        </thead>
-        <tbody id="table-body"></tbody>
-      </table>
+<!-- CART PANEL -->
+<div id="panel-cart" class="panel">
+  <div class="panel-body">
+    <div class="cart-header">
+      <h2>🛒 Cart</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="copyCartList()">Copy List</button>
+        <button class="btn btn-secondary" onclick="exportCartCSV()">Export CSV</button>
+        <button class="btn btn-danger btn-sm" onclick="clearCart()">Clear All</button>
+      </div>
     </div>
-
-    <div class="load-more-wrap">
-      <button id="load-more" style="display:none">Load more</button>
+    <div id="cart-items"></div>
+    <div id="cart-total-bar" class="cart-total-bar" style="display:none">
+      <span class="cart-total-lbl">Total</span>
+      <span class="cart-total-val" id="cart-total">$0.00</span>
     </div>
+    <div id="cart-note" style="font-size:11px;color:var(--muted);margin-top:8px;display:none">Prices in AUD. Click card names to open on Area52's site.</div>
+    <div id="cart-empty" class="cart-empty"><div class="icon">🛒</div><p>Your cart is empty.<br>Click <strong>+ Add</strong> on any card to build your list.</p></div>
+  </div>
+</div>
 
-    <footer>
-      <p id="updated-at"></p>
-    </footer>
-  </main>
+</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script src="app.js"></script>
+<div id="preview"><img id="preview-img" src="" alt=""></div>
+<div id="toast"></div>
+
+<script>
+const AREA52_API  = '/api/collections/mtg-singles-instock/products.json';
+const SCRYFALL    = '/scryfall';
+const MOXFIELD    = '/moxfield';
+const AREA52_BASE = 'https://singles.area52.com.au';
+const AUD_USD     = 0.63;
+const NOW         = Date.now();
+const DAY_MS      = 86400000;
+
+let allCards     = [];
+let filtered     = [];
+let grouped      = [];
+let expandedRows = new Set();
+let scryfallData = {};
+let setRelease   = {};
+let wishlist     = new Map();
+let cart         = [];
+let currentPage  = 1;
+let sortCol      = 'added';
+let sortDir      = -1;
+let isLoading    = false;
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
+async function loadAll() {
+  isLoading = true;
+  allCards = []; expandedRows.clear();
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('main-table').style.display = 'none';
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('btn-export').disabled = true;
+
+  const fetchPage = async (p) => {
+    for (let a = 0; a < 4; a++) {
+      try {
+        const r = await fetch(`${AREA52_API}?limit=250&page=${p}`);
+        if (r.status === 429) { await sleep(5000); continue; }
+        if (!r.ok) { await sleep(1000); continue; }
+        const d = await r.json();
+        return d.products || [];
+      } catch(e) { await sleep(1000); }
+    }
+    return null;
+  };
+
+  let page = 1, totalFetched = 0;
+  while (true) {
+    const batch = await Promise.all([fetchPage(page), fetchPage(page+1), fetchPage(page+2)]);
+    let done = false;
+    for (const products of batch) {
+      if (!products || !products.length) { done = true; break; }
+      for (const prod of products) {
+        const tags   = prod.tags || [];
+        const set    = extractSet(prod.title);
+        const name   = cleanName(prod.title);
+        const rarity = tags.find(t => ['Mythic','Rare','Uncommon','Common'].includes(t)) || '';
+        const color  = extractColor(tags);
+        const added  = new Date(prod.created_at).getTime();
+        for (const v of prod.variants) {
+          if (!v.available) continue;
+          allCards.push({ name, set, rarity, color,
+            cond: v.title, price: parseFloat(v.price),
+            sku: v.sku, handle: prod.handle,
+            foil: v.title.toLowerCase().includes('foil'),
+            added,
+          });
+        }
+      }
+      totalFetched += products.length;
+      if (products.length < 250) { done = true; break; }
+    }
+    page += 3;
+    document.getElementById('progress-fill').style.width = Math.min(88, totalFetched/110) + '%';
+    document.getElementById('progress-text').textContent = `${totalFetched.toLocaleString()} products…`;
+    if (done) break;
+  }
+
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('progress-text').textContent = `${allCards.length.toLocaleString()} in stock · loading prices…`;
+  populateSetFilter();
+  updateStats();
+  applyFilters();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('btn-export').disabled = false;
+  isLoading = false;
+
+  // Background: Scryfall prices + set dates
+  Promise.all([loadScryfallData(), loadSetDates()]).then(() => {
+    document.getElementById('progress-text').textContent = `${allCards.length.toLocaleString()} in stock · live`;
+    applyFilters();
+    updateWishlistResults();
+  });
+}
+
+async function loadScryfallData() {
+  const names = [...new Set(allCards.map(c => c.name))];
+  let loaded = 0;
+  for (let i = 0; i < names.length; i += 75) {
+    const chunk = names.slice(i, i+75);
+    try {
+      const r = await fetch(`${SCRYFALL}/cards/collection`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({identifiers: chunk.map(n => ({name:n}))})
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+      for (const card of (d.data||[])) {
+        const img = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || '';
+        scryfallData[card.name.toLowerCase()] = { usd: parseFloat(card.prices?.usd||0)||null, img };
+      }
+      loaded += (d.data||[]).length;
+      document.getElementById('st-scryfall').textContent = loaded.toLocaleString();
+      if (filtered.length) renderTable();
+      if (wishlist.size) updateWishlistResults();
+    } catch(e) {}
+    await sleep(80);
+  }
+}
+
+async function loadSetDates() {
+  try {
+    const r = await fetch(`${SCRYFALL}/sets`);
+    const d = await r.json();
+    for (const s of (d.data||[])) setRelease[s.name.toLowerCase()] = s.released_at;
+  } catch(e) {}
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r,ms)); }
+
+// ── PARSING ───────────────────────────────────────────────────────────────────
+function extractSet(t) { const m=t.match(/\[([^\]]+)\]$/); return m?m[1]:''; }
+function cleanName(t)  { return t.replace(/\s*\[[^\]]+\]$/,'').replace(/\s*\(\d{4}\)/,'').trim(); }
+function extractColor(tags) {
+  const cols=['White','Blue','Black','Red','Green'].filter(c=>tags.includes(c));
+  if (!cols.length) return tags.includes('Colorless')?'Colorless':(tags.includes('Gold')||tags.includes('Multicolor'))?'Multicolor':'';
+  return cols.length>1?'Multicolor':cols[0];
+}
+function getSF(name) { return scryfallData[name.toLowerCase()]||null; }
+function getSetAge(setName) {
+  const date = setRelease[setName.toLowerCase()];
+  if (!date) return null;
+  const days = (NOW - new Date(date).getTime()) / DAY_MS;
+  if (days < 90)  return {label:'New',cls:'age-new',days};
+  if (days < 365) return {label:'Recent',cls:'age-recent',days};
+  return {label: Math.floor(days/365)+'y', cls:'age-old', days};
+}
+function daysAgo(ms) { return Math.floor((NOW-ms)/DAY_MS); }
+function fmtDaysAgo(ms) {
+  const d = daysAgo(ms);
+  if (d === 0) return 'Today';
+  if (d === 1) return 'Yesterday';
+  if (d < 7)   return d+'d ago';
+  if (d < 30)  return Math.floor(d/7)+'w ago';
+  if (d < 365) return Math.floor(d/30)+'mo ago';
+  return Math.floor(d/365)+'y ago';
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function populateSetFilter() {
+  const sets = [...new Set(allCards.map(c=>c.set).filter(Boolean))].sort();
+  const sel = document.getElementById('f-set');
+  sel.innerHTML = '<option value="">All Sets</option>';
+  sets.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+}
+
+function applyFilters() {
+  const search  = document.getElementById('f-search').value.toLowerCase().trim();
+  const set     = document.getElementById('f-set').value;
+  const rarity  = document.getElementById('f-rarity').value;
+  const color   = document.getElementById('f-color').value;
+  const cond    = document.getElementById('f-cond').value;
+  const foil    = document.getElementById('f-foil').value;
+  const age     = parseInt(document.getElementById('f-age').value)||0;
+  const minP    = parseFloat(document.getElementById('f-min').value)||0;
+  const maxP    = parseFloat(document.getElementById('f-max').value)||Infinity;
+  const value   = document.getElementById('f-value').value;
+  const wlOnly  = document.getElementById('f-wishlist').value === 'wishlist';
+  const isGrouped = document.getElementById('f-group').value === 'grouped';
+
+  filtered = allCards.filter(c => {
+    if (search  && !c.name.toLowerCase().includes(search) && !c.set.toLowerCase().includes(search)) return false;
+    if (set     && c.set !== set)        return false;
+    if (rarity  && c.rarity !== rarity)  return false;
+    if (color   && c.color !== color)    return false;
+    if (cond    && c.cond !== cond)      return false;
+    if (foil==='foil'    && !c.foil)     return false;
+    if (foil==='nonfoil' &&  c.foil)     return false;
+    if (age && daysAgo(c.added) > age)   return false;
+    if (c.price < minP || c.price > maxP) return false;
+    if (wlOnly  && !wishlist.has(c.name.toLowerCase())) return false;
+    if (value) {
+      const sf=getSF(c.name); if (!sf?.usd) return false;
+      const r=c.price/(sf.usd/AUD_USD);
+      if (value==='deal'  && r>=0.80) return false;
+      if (value==='pricey'&& r<=1.20) return false;
+    }
+    return true;
+  });
+
+  sortFiltered();
+
+  if (isGrouped) buildGrouped();
+  else grouped = null;
+
+  currentPage = 1;
+  renderTable();
+}
+
+function clearFilters() {
+  ['f-search','f-min','f-max'].forEach(id=>document.getElementById(id).value='');
+  ['f-set','f-rarity','f-color','f-cond','f-foil','f-age','f-value','f-group','f-wishlist'].forEach(id=>document.getElementById(id).value='');
+  applyFilters();
+}
+
+// ── SORTING ───────────────────────────────────────────────────────────────────
+const RAR_ORD={Mythic:0,Rare:1,Uncommon:2,Common:3,'':4};
+function sortBy(col) {
+  sortDir = sortCol===col ? sortDir*-1 : 1;
+  sortCol = col;
+  document.querySelectorAll('thead th').forEach(th=>{
+    th.classList.remove('asc','desc');
+    if (th.dataset.col===col) th.classList.add(sortDir===1?'asc':'desc');
+  });
+  sortFiltered();
+  if (document.getElementById('f-group').value==='grouped') buildGrouped();
+  renderTable();
+}
+function sortFiltered() {
+  filtered.sort((a,b) => {
+    let va,vb;
+    switch(sortCol) {
+      case 'name':   va=a.name;  vb=b.name;  break;
+      case 'rarity': va=RAR_ORD[a.rarity]??4; vb=RAR_ORD[b.rarity]??4; break;
+      case 'color':  va=a.color; vb=b.color; break;
+      case 'cond':   va=a.cond;  vb=b.cond;  break;
+      case 'price':  va=a.price; vb=b.price; break;
+      case 'added':  va=a.added; vb=b.added; break;
+      case 'mkt': { const sa=getSF(a.name),sb=getSF(b.name); va=sa?.usd??-1; vb=sb?.usd??-1; break; }
+      case 'diff': {
+        const sa=getSF(a.name),sb=getSF(b.name);
+        va=sa?.usd?a.price/(sa.usd/AUD_USD):999; vb=sb?.usd?b.price/(sb.usd/AUD_USD):999; break;
+      }
+      default: return 0;
+    }
+    if (typeof va==='string') return va.localeCompare(vb)*sortDir;
+    return (va-vb)*sortDir;
+  });
+}
+
+// ── GROUPING ──────────────────────────────────────────────────────────────────
+function buildGrouped() {
+  const map = new Map();
+  for (const c of filtered) {
+    const key = c.name+'||'+c.set;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(c);
+  }
+  grouped = [...map.entries()].map(([key, cards]) => {
+    cards.sort((a,b) => a.price-b.price);
+    return { key, name:cards[0].name, set:cards[0].set, rarity:cards[0].rarity, color:cards[0].color, added:cards[0].added, cards, cheapest:cards[0] };
+  });
+}
+
+// ── RENDER TABLE ──────────────────────────────────────────────────────────────
+function renderTable() {
+  const size  = parseInt(document.getElementById('page-size').value);
+  const isG   = document.getElementById('f-group').value === 'grouped';
+  const data  = isG ? (grouped||[]) : filtered;
+  const total = data.length;
+  const pages = Math.ceil(total/size)||1;
+  currentPage = Math.max(1, Math.min(currentPage, pages));
+
+  document.getElementById('result-count').textContent = total.toLocaleString();
+  document.getElementById('page-info').textContent = `${currentPage} / ${pages}`;
+  document.getElementById('btn-prev').disabled = currentPage<=1;
+  document.getElementById('btn-next').disabled = currentPage>=pages;
+
+  if (!total) {
+    document.getElementById('main-table').style.display='none';
+    document.getElementById('empty').style.display='block';
+    return;
+  }
+  document.getElementById('empty').style.display='none';
+  document.getElementById('main-table').style.display='table';
+
+  const slice = data.slice((currentPage-1)*size, currentPage*size);
+  const rows  = [];
+
+  for (const item of slice) {
+    if (isG) {
+      rows.push(renderGroupRow(item));
+      if (expandedRows.has(item.key)) {
+        for (const c of item.cards) rows.push(renderSubRow(c, item.key));
+      }
+    } else {
+      rows.push(renderFlatRow(item));
+    }
+  }
+  document.getElementById('table-body').innerHTML = rows.join('');
+}
+
+function renderFlatRow(c) {
+  const url    = `${AREA52_BASE}/products/${c.handle}`;
+  const sf     = getSF(c.name);
+  const isWL   = wishlist.has(c.name.toLowerCase());
+  const isNew  = daysAgo(c.added) <= 7;
+  const star   = `<span class="wish-star ${isWL?'on':''}" onclick="toggleWishStar(event,'${esc(c.name)}')">${isWL?'★':'☆'}</span>`;
+  const foilT  = c.foil?'<span class="foil-tag">✦ foil</span>':'';
+  const newT   = isNew?'<span class="new-badge">New</span>':'';
+  const age    = getSetAge(c.set);
+  const agePill= age?`<span class="set-age ${age.cls}">${age.label}</span>`:'';
+  let mktH='<span style="color:var(--muted)">—</span>', diffH='<span style="color:var(--muted)">—</span>';
+  if (sf?.usd) {
+    const mktAud = sf.usd/AUD_USD, ratio=c.price/mktAud, pct=Math.round((ratio-1)*100);
+    const sign = pct>0?'+':'';
+    const cls  = ratio<0.80?'deal':ratio>1.20?'pricey':'';
+    mktH  = `<span class="mkt">$${sf.usd.toFixed(2)}</span>`;
+    diffH = `<span class="mkt ${cls}">${sign}${pct}%</span>`;
+  }
+  const img = sf?.img ? `data-img="${sf.img}"` : '';
+  const trCls = `${isWL?'wishlisted':''} ${isNew?'new-card':''}`.trim();
+  return `<tr class="${trCls}" ${img} onmouseenter="showPreview(event,this)" onmouseleave="hidePreview()">
+    <td style="text-align:center;padding:8px 6px">${star}</td>
+    <td class="card-name-cell">
+      <div class="cn">${foilT}${newT}<a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(c.name)}</a></div>
+      <div class="cs">${esc(c.set)}${agePill}</div>
+    </td>
+    <td><span class="rar r${(c.rarity||'C')[0]}">${c.rarity||'—'}</span></td>
+    <td>${colorPip(c.color)}</td>
+    <td><span class="cond ${condCls(c.cond)}">${esc(c.cond)}</span></td>
+    <td class="price">$${c.price.toFixed(2)}</td>
+    <td>${mktH}</td>
+    <td>${diffH}</td>
+    <td style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtDaysAgo(c.added)}</td>
+    <td><button class="btn btn-secondary btn-xs" onclick="addToCart(event,${JSON.stringify(c).replace(/"/g,'&quot;')})">+Add</button></td>
+  </tr>`;
+}
+
+function renderGroupRow(g) {
+  const c      = g.cheapest;
+  const url    = `${AREA52_BASE}/products/${c.handle}`;
+  const sf     = getSF(g.name);
+  const isWL   = wishlist.has(g.name.toLowerCase());
+  const isNew  = daysAgo(g.added) <= 7;
+  const exp    = expandedRows.has(g.key);
+  const star   = `<span class="wish-star ${isWL?'on':''}" onclick="toggleWishStar(event,'${esc(g.name)}')">${isWL?'★':'☆'}</span>`;
+  const foilT  = c.foil?'<span class="foil-tag">✦ foil</span>':'';
+  const newT   = isNew?'<span class="new-badge">New</span>':'';
+  const age    = getSetAge(g.set);
+  const agePill= age?`<span class="set-age ${age.cls}">${age.label}</span>`:'';
+  const condSummary = g.cards.length > 1
+    ? `${g.cards.length} options · from $${c.price.toFixed(2)}`
+    : esc(c.cond);
+  let mktH='<span style="color:var(--muted)">—</span>', diffH='<span style="color:var(--muted)">—</span>';
+  if (sf?.usd) {
+    const mktAud=sf.usd/AUD_USD, ratio=c.price/mktAud, pct=Math.round((ratio-1)*100);
+    mktH=`<span class="mkt">$${sf.usd.toFixed(2)}</span>`;
+    diffH=`<span class="mkt ${ratio<0.80?'deal':ratio>1.20?'pricey':''}">${pct>0?'+':''}${pct}%</span>`;
+  }
+  const img = sf?.img ? `data-img="${sf.img}"` : '';
+  const expandBtn = g.cards.length > 1
+    ? `<span class="group-expand" onclick="toggleExpand('${esc(g.key)}',event)">${exp?'▾':'▸'} ${g.cards.length} conditions</span>`
+    : '';
+  const trCls = `group-row ${isWL?'wishlisted':''} ${isNew?'new-card':''}`.trim();
+  return `<tr class="${trCls}" ${img} onmouseenter="showPreview(event,this)" onmouseleave="hidePreview()">
+    <td style="text-align:center;padding:8px 6px">${star}</td>
+    <td class="card-name-cell">
+      <div class="cn">${foilT}${newT}<a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(g.name)}</a></div>
+      <div class="cs">${esc(g.set)}${agePill} ${expandBtn}</div>
+    </td>
+    <td><span class="rar r${(g.rarity||'C')[0]}">${g.rarity||'—'}</span></td>
+    <td>${colorPip(g.color)}</td>
+    <td><span class="cond ${condCls(c.cond)}">${condSummary}</span></td>
+    <td class="price">$${c.price.toFixed(2)}</td>
+    <td>${mktH}</td>
+    <td>${diffH}</td>
+    <td style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtDaysAgo(g.added)}</td>
+    <td><button class="btn btn-secondary btn-xs" onclick="addToCart(event,${JSON.stringify(c).replace(/"/g,'&quot;')})">+Add</button></td>
+  </tr>`;
+}
+
+function renderSubRow(c, key) {
+  const url = `${AREA52_BASE}/products/${c.handle}`;
+  return `<tr class="group-sub">
+    <td></td>
+    <td colspan="3"><span class="cond ${condCls(c.cond)}">${esc(c.cond)}</span></td>
+    <td></td>
+    <td class="price">$${c.price.toFixed(2)}</td>
+    <td></td><td></td><td></td>
+    <td><button class="btn btn-secondary btn-xs" onclick="addToCart(event,${JSON.stringify(c).replace(/"/g,'&quot;')})">+Add</button></td>
+  </tr>`;
+}
+
+function toggleExpand(key, e) {
+  e.stopPropagation();
+  if (expandedRows.has(key)) expandedRows.delete(key);
+  else expandedRows.add(key);
+  renderTable();
+}
+
+// ── CARD PREVIEW ──────────────────────────────────────────────────────────────
+function showPreview(e, row) {
+  const img = row.dataset.img; if (!img) return;
+  document.getElementById('preview-img').src = img;
+  document.getElementById('preview').style.display = 'block';
+  posPreview(e);
+}
+function posPreview(e) {
+  const el=document.getElementById('preview');
+  el.style.left = Math.min(e.clientX+16, window.innerWidth-220)+'px';
+  el.style.top  = Math.max(10, Math.min(e.clientY-80, window.innerHeight-300))+'px';
+}
+function hidePreview() { document.getElementById('preview').style.display='none'; }
+document.addEventListener('mousemove', e => {
+  if (document.getElementById('preview').style.display==='block') posPreview(e);
+});
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const sets   = new Set(allCards.map(c=>c.set).filter(Boolean));
+  const prices = allCards.map(c=>c.price).filter(p=>p>0);
+  const avg    = prices.length ? prices.reduce((a,b)=>a+b,0)/prices.length : 0;
+  const newCount = allCards.filter(c=>daysAgo(c.added)<=7).length;
+  document.getElementById('st-total').textContent = allCards.length.toLocaleString();
+  document.getElementById('st-new').textContent   = newCount.toLocaleString();
+  document.getElementById('st-sets').textContent  = sets.size.toLocaleString();
+  document.getElementById('st-avg').textContent   = '$'+avg.toFixed(2);
+}
+
+// ── WISHLIST ──────────────────────────────────────────────────────────────────
+function parseWishlistText(text) {
+  const map = new Map();
+  for (let line of text.split('\n')) {
+    line = line.trim(); if (!line || line.startsWith('//') || line.startsWith('#')) continue;
+    let qty=1, name=line;
+    const lead = line.match(/^(\d+)x?\s+(.+)/i);
+    if (lead) { qty=parseInt(lead[1]); name=lead[2]; }
+    name = name.replace(/\s*[/([{|].*$/, '').replace(/\s+x?\d+$/i,'').trim();
+    if (name) { const k=name.toLowerCase(); map.set(k,(map.get(k)||0)+qty); }
+  }
+  return map;
+}
+
+function updateWishlist() {
+  wishlist = parseWishlistText(document.getElementById('wl-input').value);
+  updateWishlistBadge();
+  updateWishlistResults();
+  if (filtered.length) renderTable();
+}
+
+function updateWishlistBadge() {
+  document.getElementById('wl-badge').textContent = wishlist.size;
+  document.getElementById('wl-badge').style.display = wishlist.size ? 'inline' : 'none';
+}
+
+function toggleWishStar(e, name) {
+  e.stopPropagation();
+  const key = name.toLowerCase();
+  if (wishlist.has(key)) wishlist.delete(key); else wishlist.set(key,1);
+  document.getElementById('wl-input').value = [...wishlist.entries()].map(([k,q])=>q>1?`${q} ${k}`:k).join('\n');
+  updateWishlistBadge();
+  updateWishlistResults();
+  renderTable();
+}
+
+function clearWishlist() {
+  wishlist.clear();
+  document.getElementById('wl-input').value = '';
+  updateWishlistBadge();
+  updateWishlistResults();
+  renderTable();
+}
+
+async function importMoxfield() {
+  const urlInput = document.getElementById('mox-url').value.trim();
+  if (!urlInput) { toast('Paste a Moxfield deck URL first'); return; }
+  const match = urlInput.match(/moxfield\.com\/decks\/([\w-]+)/);
+  if (!match) { toast('Invalid Moxfield URL — should contain /decks/…'); return; }
+  const pid = match[1];
+  toast('Importing from Moxfield…', 8000);
+  try {
+    const r = await fetch(`${MOXFIELD}/v2/decks/all/${pid}`);
+    if (!r.ok) { toast('Could not fetch deck — is it public?'); return; }
+    const d = await r.json();
+    const newMap = new Map(wishlist); // preserve existing entries
+    const boards = ['mainboard','sideboard','commanders','companions','maybeboard'];
+    for (const board of boards) {
+      const cards = d[board] || {};
+      for (const entry of Object.values(cards)) {
+        const name = entry.card?.name;
+        const qty  = entry.quantity || 1;
+        if (name) { const k=name.toLowerCase(); newMap.set(k,(newMap.get(k)||0)+qty); }
+      }
+    }
+    wishlist = newMap;
+    document.getElementById('wl-input').value = [...wishlist.entries()].map(([k,q])=>q>1?`${q} ${k}`:k).join('\n');
+    updateWishlistBadge();
+    updateWishlistResults();
+    renderTable();
+    const total = [...wishlist.values()].reduce((a,b)=>a+b,0);
+    toast(`Imported ${wishlist.size} cards (${total} total) from "${d.name||'deck'}"`);
+  } catch(e) {
+    toast('Import failed: '+e.message);
+  }
+}
+
+function updateWishlistResults() {
+  if (!allCards.length) return;
+  const wants = [...wishlist.keys()];
+  const totalWanted = [...wishlist.values()].reduce((a,b)=>a+b,0);
+  document.getElementById('wl-total-cards').textContent = totalWanted;
+
+  const found=[], missing=[];
+  for (const want of wants) {
+    const qty = wishlist.get(want)||1;
+    const matches = allCards.filter(c=>c.name.toLowerCase()===want);
+    if (matches.length) {
+      matches.sort((a,b)=>a.price-b.price);
+      found.push({want, qty, cards:matches, best:matches[0]});
+    } else {
+      missing.push({want, qty});
+    }
+  }
+
+  document.getElementById('wl-found').textContent   = found.length;
+  document.getElementById('wl-missing').textContent  = missing.length;
+  const bestTotal = found.reduce((s,f)=>s+f.best.price*f.qty,0);
+  document.getElementById('wl-best-price').textContent = found.length ? `$${bestTotal.toFixed(2)}` : '—';
+
+  let html = '';
+  if (found.length) {
+    html += `<div class="wl-section"><div class="wl-section-title">✓ In Stock (${found.length})</div>`;
+    html += found.map(({want,qty,cards,best}) => {
+      const sf  = getSF(best.name);
+      const img = sf?.img ? `<img src="${sf.img}" alt="">` : '<div style="width:34px"></div>';
+      const url = `${AREA52_BASE}/products/${best.handle}`;
+      const condSummary = cards.length>1 ? `${cards.length} conditions from $${best.price.toFixed(2)}` : best.cond;
+      const qtyTag = qty>1 ? `<span style="color:var(--accent);font-weight:700">×${qty}</span> ` : '';
+      const lineTotal = qty>1 ? ` <span style="color:var(--muted);font-size:10px">= $${(best.price*qty).toFixed(2)}</span>` : '';
+      const mktH = sf?.usd ? `<div class="wl-card-mkt">Market $${sf.usd.toFixed(2)} USD</div>` : '';
+      return `<div class="wl-card found">
+        ${img}
+        <div class="wl-card-info">
+          <div class="wl-card-name">${qtyTag}<a href="${url}" target="_blank" style="color:inherit;text-decoration:none">${esc(best.name)}</a></div>
+          <div class="wl-card-sub">${esc(best.set)} · ${condSummary}</div>
+        </div>
+        <div class="wl-card-right">
+          <div class="wl-card-price">$${best.price.toFixed(2)}${lineTotal}</div>
+          ${mktH}
+        </div>
+        <button class="btn btn-secondary btn-xs" onclick="addToCart(event,${JSON.stringify(best).replace(/"/g,'&quot;')})">+Cart</button>
+      </div>`;
+    }).join('') + '</div>';
+  }
+  if (missing.length) {
+    html += `<div class="wl-section" style="margin-top:16px"><div class="wl-section-title">✗ Not in Stock (${missing.length})</div>`;
+    html += missing.map(({want,qty}) => `
+      <div class="wl-card notfound">
+        <div style="width:34px"></div>
+        <div class="wl-card-info">
+          <div class="wl-card-name">${qty>1?`<span style="color:var(--muted)">×${qty}</span> `:''}${esc(want)}</div>
+          <div class="wl-card-sub">Not currently in stock</div>
+        </div>
+      </div>`).join('') + '</div>';
+  }
+  if (!wants.length) html = '<p style="color:var(--muted);text-align:center;padding:40px 20px">Enter card names above to check what Area52 has in stock</p>';
+  document.getElementById('wl-results').innerHTML = html;
+}
+
+function addAllWishlistToCart() {
+  const wants = [...wishlist.keys()];
+  let added = 0;
+  for (const want of wants) {
+    const matches = allCards.filter(c=>c.name.toLowerCase()===want);
+    if (matches.length) {
+      matches.sort((a,b)=>a.price-b.price);
+      const qty = wishlist.get(want)||1;
+      for (let i=0;i<qty;i++) addToCart(null, matches[0]);
+      added++;
+    }
+  }
+  toast(`Added ${added} card${added!==1?'s':''} to cart`);
+  showPanel('cart', document.querySelectorAll('.tab-btn')[2]);
+}
+
+// ── CART ──────────────────────────────────────────────────────────────────────
+function addToCart(e, cardOrStr) {
+  if (e) e.stopPropagation();
+  const c = typeof cardOrStr === 'string' ? JSON.parse(cardOrStr.replace(/&quot;/g,'"')) : cardOrStr;
+  const sf = getSF(c.name);
+  cart.push({...c, img: sf?.img||''});
+  updateCartUI();
+  toast(`Added ${c.name} to cart`);
+}
+
+function removeFromCart(i) { cart.splice(i,1); updateCartUI(); }
+function clearCart()       { cart=[]; updateCartUI(); }
+
+function updateCartUI() {
+  const badge = document.getElementById('cart-badge');
+  badge.textContent = cart.length;
+  badge.style.display = cart.length ? 'inline' : 'none';
+  const el   = document.getElementById('cart-items');
+  const totW = document.getElementById('cart-total-bar');
+  const note = document.getElementById('cart-note');
+  const emp  = document.getElementById('cart-empty');
+  if (!cart.length) { el.innerHTML=''; totW.style.display='none'; note.style.display='none'; emp.style.display='block'; return; }
+  emp.style.display='none'; totW.style.display='flex'; note.style.display='block';
+  const total = cart.reduce((s,c)=>s+c.price,0);
+  document.getElementById('cart-total').textContent = `$${total.toFixed(2)}`;
+  el.innerHTML = cart.map((c,i) => {
+    const url = `${AREA52_BASE}/products/${c.handle}`;
+    const img = c.img ? `<img src="${c.img}" alt="">` : '<div style="width:34px"></div>';
+    return `<div class="cart-item">
+      ${img}
+      <div class="cart-item-info">
+        <div class="cart-item-name"><a href="${url}" target="_blank" style="color:inherit;text-decoration:none">${esc(c.name)}</a></div>
+        <div class="cart-item-sub">${esc(c.set)} · ${esc(c.cond)}</div>
+      </div>
+      <div class="cart-item-price">$${c.price.toFixed(2)}</div>
+      <button class="cart-remove" onclick="removeFromCart(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function copyCartList() {
+  const total = cart.reduce((s,c)=>s+c.price,0);
+  const lines = cart.map(c=>`${c.name} (${c.cond}) — $${c.price.toFixed(2)}`);
+  lines.push('', `Total: $${total.toFixed(2)} AUD`);
+  navigator.clipboard.writeText(lines.join('\n'));
+  toast('Cart list copied to clipboard');
+}
+
+function exportCartCSV() {
+  const rows=[['Card Name','Set','Condition','Price (AUD)','URL']];
+  cart.forEach(c=>rows.push([`"${c.name.replace(/"/g,'""')}"`,`"${c.set.replace(/"/g,'""')}"`,c.cond,c.price.toFixed(2),`"${AREA52_BASE}/products/${c.handle}"`]));
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
+  a.download=`area52_cart_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+// ── GENERAL ACTIONS ───────────────────────────────────────────────────────────
+function showPanel(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else document.querySelectorAll('.tab-btn').forEach(b=>{ if(b.onclick?.toString().includes(name)) b.classList.add('active'); });
+  if (name==='wishlist') updateWishlistResults();
+}
+
+function changePage(p) {
+  currentPage=p; renderTable();
+  document.getElementById('table-wrap').scrollTo({top:0,behavior:'smooth'});
+}
+
+function refresh() {
+  if (isLoading) return;
+  allCards=[]; filtered=[]; grouped=null; scryfallData={}; setRelease={}; expandedRows.clear();
+  document.getElementById('st-scryfall').textContent='—';
+  loadAll();
+}
+
+function exportCSV() {
+  const rows=[['Card Name','Set','Rarity','Color','Condition','Foil','Price (AUD)','Market Price (USD)','vs Market','Added','SKU','URL']];
+  for (const c of filtered) {
+    const sf=getSF(c.name);
+    const mkt=sf?.usd?sf.usd.toFixed(2):'';
+    const ratio=sf?.usd?Math.round((c.price/(sf.usd/AUD_USD)-1)*100)+'%':'';
+    rows.push([`"${c.name.replace(/"/g,'""')}"`,`"${c.set.replace(/"/g,'""')}"`,c.rarity,c.color,c.cond,c.foil?'Yes':'No',c.price.toFixed(2),mkt,ratio,new Date(c.added).toISOString().slice(0,10),c.sku,`"${AREA52_BASE}/products/${c.handle}"`]);
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
+  a.download=`area52_mtg_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') {
+    if (e.key==='Escape') { e.target.blur(); clearFilters(); }
+    return;
+  }
+  if (e.key==='/') { e.preventDefault(); document.getElementById('f-search').focus(); }
+  if (e.key==='Escape') clearFilters();
+  if (e.key==='ArrowLeft'  && currentPage>1) changePage(currentPage-1);
+  if (e.key==='ArrowRight') changePage(currentPage+1);
+});
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, duration=2500) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'), duration);
+}
+
+// ── DISPLAY HELPERS ───────────────────────────────────────────────────────────
+function condCls(c) {
+  const s=c.toLowerCase(),f=s.includes('foil');
+  if(s.includes('near mint'))          return f?'nmf':'nm';
+  if(s.includes('lightly played'))     return f?'lpf':'lp';
+  if(s.includes('moderately played'))  return f?'mpf':'mp';
+  if(s.includes('heavily played'))     return f?'hpf':'hp';
+  if(s.includes('damaged'))            return f?'dmgf':'dmg';
+  return '';
+}
+function colorPip(color) {
+  const M={White:'W',Blue:'U',Black:'B',Red:'R',Green:'G',Colorless:'C',Multicolor:'M'};
+  const L={White:'W',Blue:'U',Black:'B',Red:'R',Green:'G',Colorless:'◆',Multicolor:'★'};
+  const k=M[color]; if(!k) return '<span style="color:var(--muted)">—</span>';
+  return `<span class="pip p${k}" title="${color}">${L[color]}</span>`;
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadAll();
+</script>
 </body>
 </html>

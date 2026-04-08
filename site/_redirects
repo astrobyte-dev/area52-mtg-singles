@@ -1,0 +1,4 @@
+# Netlify proxy rules — replaces the local Python proxy server
+/api/*    https://singles.area52.com.au/:splat    200
+/scryfall/*    https://api.scryfall.com/:splat    200
+/moxfield/*    https://api2.moxfield.com/:splat    200
