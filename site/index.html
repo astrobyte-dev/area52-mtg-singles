@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Area52 MTG Singles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Area52 MTG Singles</h1>
+      <p class="subtitle">In-stock Magic: The Gathering singles from <a href="https://singles.area52.com.au" target="_blank">singles.area52.com.au</a></p>
+    </div>
+  </header>
+
+  <main>
+    <div class="controls">
+      <div class="search-row">
+        <input type="text" id="search" placeholder="Search card name..." autocomplete="off">
+        <div class="stats" id="stats">Loading...</div>
+      </div>
+      <div class="filter-row">
+        <select id="filter-set"><option value="">All Sets</option></select>
+        <select id="filter-condition"><option value="">All Conditions</option></select>
+        <select id="filter-stock">
+          <option value="">All Stock</option>
+          <option value="Yes" selected>In Stock</option>
+          <option value="No">Out of Stock</option>
+        </select>
+        <select id="sort-by">
+          <option value="name-asc">Name A-Z</option>
+          <option value="name-desc">Name Z-A</option>
+          <option value="price-asc">Price Low-High</option>
+          <option value="price-desc">Price High-Low</option>
+          <option value="set-asc">Set A-Z</option>
+        </select>
+        <button id="reset-btn" title="Reset filters">Reset</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="card-table">
+        <thead>
+          <tr>
+            <th class="col-name">Card Name</th>
+            <th class="col-set">Set</th>
+            <th class="col-condition">Condition</th>
+            <th class="col-price">Price (AUD)</th>
+            <th class="col-stock">In Stock</th>
+            <th class="col-qty">Qty</th>
+            <th class="col-sku">SKU</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="load-more-wrap">
+      <button id="load-more" style="display:none">Load more</button>
+    </div>
+
+    <footer>
+      <p id="updated-at"></p>
+    </footer>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

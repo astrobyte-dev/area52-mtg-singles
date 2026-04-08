@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+area52_scraper_progress.json
+area52_qty_progress.json
+*.xlsx
