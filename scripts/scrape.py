@@ -22,9 +22,16 @@ OUTPUT_FILE = os.path.join(ROOT_DIR, "site", "data.csv")
 BASE_URL = "https://singles.area52.com.au"
 API_URL = f"{BASE_URL}/collections/mtg-singles-instock/products.json"
 LIMIT = 250
-DELAY = 1.5
+DELAY = 2.0
 MAX_RETRIES = 5
-RETRY_DELAY = 10
+RETRY_DELAY = 15
+
+SESSION = requests.Session()
+SESSION.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/json,*/*;q=0.8",
+    "Accept-Language": "en-AU,en;q=0.9",
+})
 
 # ── Phase 1: Fetch product listings via API ─────────────────────────
 
@@ -33,7 +40,7 @@ def fetch_page(page: int) -> list:
     params = {"limit": LIMIT, "page": page}
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            response = requests.get(API_URL, params=params, timeout=30)
+            response = SESSION.get(API_URL, params=params, timeout=30)
             if response.status_code == 429:
                 wait = RETRY_DELAY * attempt
                 print(f"  Rate limited (429). Waiting {wait}s (attempt {attempt}/{MAX_RETRIES})...")
@@ -138,7 +145,7 @@ def fetch_qty_map(handle):
     url = f"{BASE_URL}/products/{handle}"
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            resp = requests.get(url, timeout=20)
+            resp = SESSION.get(url, timeout=20)
             if resp.status_code == 404:
                 return {}
             if resp.status_code == 429:
