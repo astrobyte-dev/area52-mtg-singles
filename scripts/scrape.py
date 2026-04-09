@@ -17,7 +17,7 @@ from datetime import datetime
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
-OUTPUT_FILE = os.path.join(ROOT_DIR, "site", "data.csv")
+OUTPUT_FILE = os.path.join(ROOT_DIR, "data", "area52_mtg_singles.csv")
 
 BASE_URL = "https://singles.area52.com.au"
 API_URL = f"{BASE_URL}/collections/mtg-singles-instock/products.json"

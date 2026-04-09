@@ -1,22 +1,64 @@
-name: Deploy Site
+name: Update Data & Deploy
 
 on:
   push:
     branches: [main]
+  schedule:
+    # Runs daily at 10:00 PM AEST (12:00 UTC)
+    - cron: '0 12 * * *'
   workflow_dispatch:
 
 permissions:
+  contents: write
   pages: write
   id-token: write
 
 jobs:
+  scrape:
+    # Only run scraper on schedule or manual trigger (not on every push)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run scraper
+        run: python scripts/scrape.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No data changes detected."
+          else
+            git commit -m "chore: update card data $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
+
   deploy:
+    # Deploy on push, or after scrape completes
+    if: always() && (github.event_name == 'push' || needs.scrape.result == 'success')
+    needs: [scrape]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Pull latest
+        run: git pull origin main
 
       - uses: actions/configure-pages@v4
 
