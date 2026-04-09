@@ -203,7 +203,7 @@ def enrich_quantities(rows: list) -> list:
         if row["In Stock"] != "Yes":
             continue
         handle = title_to_handle(row["Card Name"])
-        sku = row.get("SKU", "").strip()
+        sku = (row.get("SKU") or "").strip()
         if sku:
             handle_to_skus.setdefault(handle, set()).add(sku)
 
@@ -231,7 +231,7 @@ def enrich_quantities(rows: list) -> list:
 
     # Apply quantities to rows
     for row in rows:
-        sku = row.get("SKU", "").strip()
+        sku = (row.get("SKU") or "").strip()
         if sku in sku_qty:
             row["Qty In Stock"] = str(sku_qty[sku])
 
