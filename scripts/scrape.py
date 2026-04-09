@@ -18,6 +18,7 @@ from datetime import datetime
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 OUTPUT_FILE = os.path.join(ROOT_DIR, "data", "area52_mtg_singles.csv")
+QTY_JSON = os.path.join(ROOT_DIR, "site", "qty.json")
 
 BASE_URL = "https://singles.area52.com.au"
 API_URL = f"{BASE_URL}/collections/mtg-singles-instock/products.json"
@@ -252,6 +253,23 @@ def write_csv(rows: list):
         writer.writerows(rows)
 
 
+def write_qty_json(rows: list):
+    """Write a small {sku: qty} JSON file for the live site to consume."""
+    qty_map = {}
+    for row in rows:
+        sku = (row.get("SKU") or "").strip()
+        qty = row.get("Qty In Stock", "")
+        if sku and qty and qty != "0":
+            qty_map[sku] = int(qty)
+    payload = {
+        "updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        "quantities": qty_map,
+    }
+    with open(QTY_JSON, "w", encoding="utf-8") as f:
+        json.dump(payload, f, separators=(",", ":"))
+    print(f"  qty.json written: {len(qty_map):,} SKUs with quantities.")
+
+
 def main():
     print()
     print(f"  Area52 MTG Singles Scraper + Qty Enricher (CI)")
@@ -261,10 +279,12 @@ def main():
     rows = scrape_listings()
     rows = enrich_quantities(rows)
     write_csv(rows)
+    write_qty_json(rows)
 
     in_stock = sum(1 for r in rows if r["In Stock"] == "Yes")
     print("=" * 60)
     print(f"  Done! CSV saved to: {OUTPUT_FILE}")
+    print(f"  qty.json saved to: {QTY_JSON}")
     print(f"  Total variants  : {len(rows)}")
     print(f"  In stock        : {in_stock}")
     print("=" * 60)

@@ -321,6 +321,7 @@ td{padding:8px 12px;vertical-align:middle}
         <th onclick="sortBy('price')" data-col="price">Area52</th>
         <th onclick="sortBy('mkt')" data-col="mkt">Market USD</th>
         <th onclick="sortBy('diff')" data-col="diff">vs Mkt</th>
+        <th onclick="sortBy('qty')" data-col="qty">Qty</th>
         <th onclick="sortBy('added')" data-col="added">Added</th>
         <th style="width:55px;cursor:default">Cart</th>
       </tr></thead>
@@ -396,6 +397,8 @@ let grouped      = [];
 let expandedRows = new Set();
 let scryfallData = {};
 let setRelease   = {};
+let qtyData      = {};
+let qtyUpdated   = '';
 let wishlist     = new Map();
 let cart         = [];
 let currentPage  = 1;
@@ -466,12 +469,29 @@ async function loadAll() {
   document.getElementById('btn-export').disabled = false;
   isLoading = false;
 
-  // Background: Scryfall prices + set dates
-  Promise.all([loadScryfallData(), loadSetDates()]).then(() => {
-    document.getElementById('progress-text').textContent = `${allCards.length.toLocaleString()} in stock · live`;
+  // Background: Scryfall prices + set dates + qty data
+  Promise.all([loadScryfallData(), loadSetDates(), loadQtyData()]).then(() => {
+    const qtyNote = qtyUpdated ? ` · qty: ${qtyUpdated}` : '';
+    document.getElementById('progress-text').textContent = `${allCards.length.toLocaleString()} in stock · live${qtyNote}`;
     applyFilters();
     updateWishlistResults();
   });
+}
+
+async function loadQtyData() {
+  try {
+    const r = await fetch('qty.json?' + Date.now());
+    if (!r.ok) return;
+    const d = await r.json();
+    qtyData = d.quantities || {};
+    qtyUpdated = d.updated || '';
+    // Attach qty to cards
+    for (const c of allCards) {
+      if (c.sku && qtyData[c.sku]) c.qty = qtyData[c.sku];
+    }
+    const qtyCount = Object.keys(qtyData).length;
+    if (qtyCount) console.log(`Loaded qty data: ${qtyCount} SKUs (updated ${qtyUpdated})`);
+  } catch(e) { /* qty.json not available yet, that's fine */ }
 }
 
 async function loadScryfallData() {
@@ -616,6 +636,7 @@ function sortFiltered() {
       case 'color':  va=a.color; vb=b.color; break;
       case 'cond':   va=a.cond;  vb=b.cond;  break;
       case 'price':  va=a.price; vb=b.price; break;
+      case 'qty':    va=a.qty||0; vb=b.qty||0; break;
       case 'added':  va=a.added; vb=b.added; break;
       case 'mkt': { const sa=getSF(a.name),sb=getSF(b.name); va=sa?.usd??-1; vb=sb?.usd??-1; break; }
       case 'diff': {
@@ -713,6 +734,7 @@ function renderFlatRow(c) {
     <td class="price">$${c.price.toFixed(2)}</td>
     <td>${mktH}</td>
     <td>${diffH}</td>
+    <td style="text-align:center;font-size:12px;color:var(--muted)">${c.qty ? c.qty : '—'}</td>
     <td style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtDaysAgo(c.added)}</td>
     <td><button class="btn btn-secondary btn-xs" onclick="addToCart(event,${JSON.stringify(c).replace(/"/g,'&quot;')})">+Add</button></td>
   </tr>`;
@@ -756,6 +778,7 @@ function renderGroupRow(g) {
     <td class="price">$${c.price.toFixed(2)}</td>
     <td>${mktH}</td>
     <td>${diffH}</td>
+    <td style="text-align:center;font-size:12px;color:var(--muted)">${g.cards.reduce((s,x)=>s+(x.qty||0),0) || '—'}</td>
     <td style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtDaysAgo(g.added)}</td>
     <td><button class="btn btn-secondary btn-xs" onclick="addToCart(event,${JSON.stringify(c).replace(/"/g,'&quot;')})">+Add</button></td>
   </tr>`;
@@ -768,7 +791,9 @@ function renderSubRow(c, key) {
     <td colspan="3"><span class="cond ${condCls(c.cond)}">${esc(c.cond)}</span></td>
     <td></td>
     <td class="price">$${c.price.toFixed(2)}</td>
-    <td></td><td></td><td></td>
+    <td></td><td></td>
+    <td style="text-align:center;font-size:12px;color:var(--muted)">${c.qty ? c.qty : '—'}</td>
+    <td></td>
     <td><button class="btn btn-secondary btn-xs" onclick="addToCart(event,${JSON.stringify(c).replace(/"/g,'&quot;')})">+Add</button></td>
   </tr>`;
 }
