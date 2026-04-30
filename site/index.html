@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Area52">
 <title>Area52 MTG Singles — Live Inventory</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -219,6 +226,7 @@ td{padding:8px 12px;vertical-align:middle}
   <div class="h-actions">
     <button class="btn btn-secondary" onclick="refresh()" id="btn-refresh">↻ Refresh</button>
     <button class="btn btn-primary" id="btn-export" onclick="exportCSV()" disabled>Export CSV</button>
+    <button class="btn btn-primary" id="btn-install" style="display:none" onclick="installApp()">⬇ Install App</button>
   </div>
 </header>
 
@@ -1120,6 +1128,34 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadAll();
+
+// ── PWA: register service worker + install button ─────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  });
+}
+
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstall = e;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = '';
+});
+window.addEventListener('appinstalled', () => {
+  _deferredInstall = null;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'none';
+});
+async function installApp() {
+  if (!_deferredInstall) return;
+  _deferredInstall.prompt();
+  try { await _deferredInstall.userChoice; } catch(_) {}
+  _deferredInstall = null;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'none';
+}
 </script>
 </body>
 </html>
