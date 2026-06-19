@@ -579,11 +579,50 @@ async function loadQtyData() {
   } catch(e) { /* qty.json not available yet, that's fine */ }
 }
 
+// Scryfall name→{usd,img,small} cache, persisted in localStorage so repeat
+// visits resolve card images instantly without re-hitting the API.
+const SF_CACHE_KEY = 'a52-sf-cache-v1';
+const SF_CACHE_TTL = 7 * DAY_MS;
+
+function loadSFCache() {
+  try {
+    const raw = localStorage.getItem(SF_CACHE_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (!obj || !obj.ts || (NOW - obj.ts) > SF_CACHE_TTL) { localStorage.removeItem(SF_CACHE_KEY); return; }
+    for (const [k,v] of Object.entries(obj.data||{})) {
+      scryfallData[k] = { usd: v[0]??null, img: v[1]||'', small: v[2]||'' };
+    }
+  } catch(e) {}
+}
+function saveSFCache() {
+  try {
+    const data = {};
+    for (const [k,v] of Object.entries(scryfallData)) data[k] = [v.usd, v.img, v.small];
+    localStorage.setItem(SF_CACHE_KEY, JSON.stringify({ ts: NOW, data }));
+  } catch(e) { /* quota exceeded — ignore */ }
+}
+
 async function loadScryfallData() {
-  const names = [...new Set(allCards.map(c => c.name))];
-  let loaded = 0;
-  for (let i = 0; i < names.length; i += 75) {
-    const chunk = names.slice(i, i+75);
+  loadSFCache();
+  // Paint whatever the cache already knows about straight away.
+  if (Object.keys(scryfallData).length) {
+    document.getElementById('st-scryfall').textContent = Object.keys(scryfallData).length.toLocaleString();
+    renderTable();
+    if (wishlist.size) updateWishlistResults();
+  }
+
+  const allNames = [...new Set(allCards.map(c => c.name))];
+  // Fetch the cards currently on screen first, then back-fill the rest.
+  const visible = new Set((filtered || []).slice(0, 150).map(c => c.name));
+  const todo = allNames
+    .filter(n => !scryfallData[n.toLowerCase()])
+    .sort((a,b) => (visible.has(b)?1:0) - (visible.has(a)?1:0));
+  if (!todo.length) return;
+
+  let dirty = false;
+  for (let i = 0; i < todo.length; i += 75) {
+    const chunk = todo.slice(i, i+75);
     try {
       const r = await fetch(`${SCRYFALL}/cards/collection`, {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -592,16 +631,21 @@ async function loadScryfallData() {
       if (!r.ok) continue;
       const d = await r.json();
       for (const card of (d.data||[])) {
-        const img = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || '';
-        scryfallData[card.name.toLowerCase()] = { usd: parseFloat(card.prices?.usd||0)||null, img };
+        const u = card.image_uris || card.card_faces?.[0]?.image_uris || {};
+        scryfallData[card.name.toLowerCase()] = {
+          usd: parseFloat(card.prices?.usd||0)||null,
+          img: u.normal || '',
+          small: u.small || u.normal || ''
+        };
       }
-      loaded += (d.data||[]).length;
-      document.getElementById('st-scryfall').textContent = loaded.toLocaleString();
+      dirty = true;
+      document.getElementById('st-scryfall').textContent = Object.keys(scryfallData).length.toLocaleString();
       if (filtered.length) renderTable();
       if (wishlist.size) updateWishlistResults();
     } catch(e) {}
     await sleep(80);
   }
+  if (dirty) saveSFCache();
 }
 
 async function loadSetDates() {
@@ -833,7 +877,7 @@ function renderGalleryCard(c, g) {
   const sf    = getSF(c.name);
   const isWL  = wishlist.has(c.name.toLowerCase());
   const isNew = daysAgo(c.added) <= 7;
-  const img   = sf?.img || '';
+  const img   = sf?.small || sf?.img || '';
   const star  = `<span class="wish-star ${isWL?'on':''}" onclick="event.stopPropagation();toggleWishStar(event,'${esc(c.name)}')">${isWL?'★':'☆'}</span>`;
   const qty   = g ? g.cards.reduce((s,x)=>s+(x.qty||0),0) : (c.qty||0);
   const multi = g && g.cards.length>1;
@@ -1101,7 +1145,7 @@ function updateWishlistResults() {
     html += `<div class="wl-section"><div class="wl-section-title">✓ In Stock (${found.length})</div>`;
     html += found.map(({want,qty,cards,best}) => {
       const sf  = getSF(best.name);
-      const img = sf?.img ? `<img src="${sf.img}" alt="">` : '<div style="width:34px"></div>';
+      const img = (sf?.small||sf?.img) ? `<img src="${sf.small||sf.img}" alt="">` : '<div style="width:34px"></div>';
       const url = `${AREA52_BASE}/products/${best.handle}`;
       const condSummary = cards.length>1 ? `${cards.length} conditions from $${best.price.toFixed(2)}` : best.cond;
       const qtyTag = qty>1 ? `<span style="color:var(--accent);font-weight:700">×${qty}</span> ` : '';
@@ -1157,7 +1201,7 @@ function addToCart(e, cardOrStr) {
   if (e) e.stopPropagation();
   const c = typeof cardOrStr === 'string' ? JSON.parse(cardOrStr.replace(/&quot;/g,'"')) : cardOrStr;
   const sf = getSF(c.name);
-  cart.push({...c, img: sf?.img||''});
+  cart.push({...c, img: sf?.small||sf?.img||''});
   updateCartUI();
   toast(`Added ${c.name} to cart`);
 }
