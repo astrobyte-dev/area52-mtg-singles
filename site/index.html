@@ -131,6 +131,42 @@ td{padding:8px 12px;vertical-align:middle}
 .group-sub:hover{background:var(--surface)!important}
 .group-sub td:first-child{padding-left:32px}
 
+/* VIEW TOGGLE */
+#view-toggle{display:flex;border:1px solid var(--border);border-radius:5px;overflow:hidden}
+.vt-btn{background:var(--surface2);color:var(--muted);border:none;padding:4px 12px;font-size:11px;font-family:'Cinzel',serif;font-weight:600;letter-spacing:.03em;cursor:pointer;transition:all .15s}
+.vt-btn:hover{color:var(--text)}
+.vt-btn.active{background:var(--accent);color:#0d0f14}
+
+/* GALLERY */
+#gallery-grid{display:none;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;padding:16px 20px;align-content:start}
+.gcard{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s,transform .1s}
+.gcard:hover{border-color:var(--border2);transform:translateY(-2px)}
+.gcard.wishlisted{border-color:#2d6a4f}
+.gcard.new-card{box-shadow:inset 3px 0 0 var(--accent3)}
+.gcard-img{position:relative;background:#0a0c10;aspect-ratio:488/680;display:flex;align-items:center;justify-content:center}
+.gcard-img img{width:100%;height:100%;object-fit:contain;display:block}
+.gcard-noimg{color:var(--muted);font-size:11px;text-align:center;padding:10px}
+.gcard-img .wish-star{position:absolute;top:6px;right:8px;font-size:17px;background:rgba(13,15,20,.65);border-radius:50%;width:26px;height:26px;line-height:26px;text-align:center;opacity:.85}
+.gcard-img .new-badge{position:absolute;top:8px;left:8px;margin:0}
+.gcard-img .foil-tag{position:absolute;bottom:8px;left:8px;margin:0}
+.gcard-body{padding:9px 10px;display:flex;flex-direction:column;gap:5px;flex:1}
+.gcard-name{font-weight:600;font-size:12.5px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.5em}
+.gcard-name a{color:inherit;text-decoration:none}
+.gcard-name a:hover{color:var(--accent)}
+.gcard-set{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcard-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.gcard-mkt{font-size:10px;color:var(--muted)}
+.gcard-mkt.deal{color:#4ade80}
+.gcard-mkt.pricey{color:var(--danger)}
+.gcard-add{margin-top:auto;width:100%;display:flex;justify-content:space-between;align-items:center;font-size:11px;gap:8px}
+.gcard-add .gp{font-family:'Cinzel',serif;font-weight:700}
+.stock-dots{display:inline-flex;gap:3px;align-items:center}
+.stock-dots .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-hi{background:var(--accent3)}
+.dot-mid{background:var(--warn)}
+.dot-lo{background:var(--danger)}
+.dot-na{background:var(--border2)}
+
 /* PREVIEW */
 #preview{position:fixed;z-index:1000;pointer-events:none;display:none;filter:drop-shadow(0 8px 24px rgba(0,0,0,.8))}
 #preview img{width:200px;border-radius:10px;display:block}
@@ -336,7 +372,13 @@ td{padding:8px 12px;vertical-align:middle}
   </div>
 
   <div id="result-bar">
-    <span><span id="result-count">—</span> results</span>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span><span id="result-count">—</span> results</span>
+      <div id="view-toggle">
+        <button class="vt-btn" id="vt-table" title="List view" onclick="setViewMode('table')">▤ List</button>
+        <button class="vt-btn" id="vt-gallery" title="Gallery view" onclick="setViewMode('gallery')">▦ Gallery</button>
+      </div>
+    </div>
     <div id="pagination">
       <span style="color:var(--muted)">Rows:</span>
       <select id="page-size" onchange="changePage(1)">
@@ -368,6 +410,7 @@ td{padding:8px 12px;vertical-align:middle}
       </tr></thead>
       <tbody id="table-body"></tbody>
     </table>
+    <div id="gallery-grid"></div>
   </div>
 </div>
 
@@ -446,6 +489,7 @@ let currentPage  = 1;
 let sortCol      = 'added';
 let sortDir      = -1;
 let isLoading    = false;
+let viewMode     = (()=>{ try { return localStorage.getItem('a52-view') || 'table'; } catch(e) { return 'table'; } })();
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
 async function loadAll() {
@@ -719,17 +763,29 @@ function renderTable() {
   document.getElementById('btn-prev').disabled = currentPage<=1;
   document.getElementById('btn-next').disabled = currentPage>=pages;
 
+  const tableEl = document.getElementById('main-table');
+  const galEl   = document.getElementById('gallery-grid');
+
   if (!total) {
-    document.getElementById('main-table').style.display='none';
+    tableEl.style.display='none';
+    galEl.style.display='none';
     document.getElementById('empty').style.display='block';
     return;
   }
   document.getElementById('empty').style.display='none';
-  document.getElementById('main-table').style.display='table';
 
   const slice = data.slice((currentPage-1)*size, currentPage*size);
-  const rows  = [];
 
+  if (viewMode === 'gallery') {
+    tableEl.style.display='none';
+    galEl.style.display='grid';
+    galEl.innerHTML = slice.map(item => isG ? renderGalleryCard(item.cheapest, item) : renderGalleryCard(item, null)).join('');
+    return;
+  }
+
+  galEl.style.display='none';
+  tableEl.style.display='table';
+  const rows = [];
   for (const item of slice) {
     if (isG) {
       rows.push(renderGroupRow(item));
@@ -741,6 +797,71 @@ function renderTable() {
     }
   }
   document.getElementById('table-body').innerHTML = rows.join('');
+}
+
+// ── GALLERY VIEW ──────────────────────────────────────────────────────────────
+function setViewMode(mode) {
+  viewMode = mode;
+  try { localStorage.setItem('a52-view', mode); } catch(e) {}
+  syncViewButtons();
+  renderTable();
+}
+function syncViewButtons() {
+  document.getElementById('vt-table').classList.toggle('active', viewMode==='table');
+  document.getElementById('vt-gallery').classList.toggle('active', viewMode==='gallery');
+}
+function stockDots(qty) {
+  if (!qty) return '<span class="stock-dots" title="Qty unknown"><i class="dot dot-na"></i></span>';
+  let n, cls;
+  if (qty>=4)      { n=3; cls='dot-hi';  }
+  else if (qty>=2) { n=2; cls='dot-mid'; }
+  else             { n=1; cls='dot-lo';  }
+  return `<span class="stock-dots" title="${qty} in stock">${('<i class="dot '+cls+'"></i>').repeat(n)}</span>`;
+}
+function galleryCondLabel(cond) {
+  const s = cond.toLowerCase(), foil = s.includes('foil');
+  let ab = cond;
+  if (s.includes('near mint'))           ab='NM';
+  else if (s.includes('lightly played')) ab='LP';
+  else if (s.includes('moderately'))     ab='MP';
+  else if (s.includes('heavily'))        ab='HP';
+  else if (s.includes('damaged'))        ab='DMG';
+  return `${foil?'Foil':'Non-Foil'} · ${ab}`;
+}
+function renderGalleryCard(c, g) {
+  const url   = `${AREA52_BASE}/products/${c.handle}`;
+  const sf    = getSF(c.name);
+  const isWL  = wishlist.has(c.name.toLowerCase());
+  const isNew = daysAgo(c.added) <= 7;
+  const img   = sf?.img || '';
+  const star  = `<span class="wish-star ${isWL?'on':''}" onclick="event.stopPropagation();toggleWishStar(event,'${esc(c.name)}')">${isWL?'★':'☆'}</span>`;
+  const qty   = g ? g.cards.reduce((s,x)=>s+(x.qty||0),0) : (c.qty||0);
+  const multi = g && g.cards.length>1;
+  const condBadge = multi
+    ? `<span class="cond ${condCls(c.cond)}">${g.cards.length} options</span>`
+    : `<span class="cond ${condCls(c.cond)}">${galleryCondLabel(c.cond)}</span>`;
+  let mktH = '';
+  if (sf?.usd) {
+    const ratio = c.price/(sf.usd/AUD_USD), pct = Math.round((ratio-1)*100);
+    const cls = ratio<0.80?'deal':ratio>1.20?'pricey':'';
+    mktH = `<span class="gcard-mkt ${cls}">mkt $${sf.usd.toFixed(2)} · ${pct>0?'+':''}${pct}%</span>`;
+  }
+  const imgH = img
+    ? `<img src="${img}" alt="${esc(c.name)}" loading="lazy">`
+    : `<div class="gcard-noimg">${esc(c.name)}</div>`;
+  const foilT = c.foil ? '<span class="foil-tag">✦ foil</span>' : '';
+  const newT  = isNew ? '<span class="new-badge">New</span>' : '';
+  const addLabel = multi ? `From $${c.price.toFixed(2)}` : `$${c.price.toFixed(2)}`;
+  return `<div class="gcard ${isWL?'wishlisted':''} ${isNew?'new-card':''}">
+    <div class="gcard-img"><a href="${url}" target="_blank" rel="noopener">${imgH}</a>${star}${newT}${foilT}</div>
+    <div class="gcard-body">
+      <div class="gcard-name"><a href="${url}" target="_blank" rel="noopener">${esc(c.name)}</a></div>
+      <div class="gcard-set">${esc(c.set)||'&nbsp;'}</div>
+      <div class="gcard-meta">${condBadge}${stockDots(qty)}</div>
+      ${mktH || '<span class="gcard-mkt">&nbsp;</span>'}
+      <button class="btn btn-secondary gcard-add" onclick="addToCart(event,${JSON.stringify(c).replace(/"/g,'&quot;')})"><span>+ Add</span><span class="gp">${addLabel}</span></button>
+    </div>
+  </div>`;
 }
 
 function renderFlatRow(c) {
@@ -1080,8 +1201,8 @@ function copyCartList() {
 }
 
 function exportCartCSV() {
-  const rows=[['Card Name','Set','Condition','Price (AUD)','URL']];
-  cart.forEach(c=>rows.push([`"${c.name.replace(/"/g,'""')}"`,`"${c.set.replace(/"/g,'""')}"`,c.cond,c.price.toFixed(2),`"${AREA52_BASE}/products/${c.handle}"`]));
+  const rows=[['Card Name','Set','Condition','Price (AUD)','Qty In Stock','URL']];
+  cart.forEach(c=>rows.push([`"${c.name.replace(/"/g,'""')}"`,`"${c.set.replace(/"/g,'""')}"`,c.cond,c.price.toFixed(2),c.qty||'',`"${AREA52_BASE}/products/${c.handle}"`]));
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
   a.download=`area52_cart_${new Date().toISOString().slice(0,10)}.csv`; a.click();
 }
@@ -1109,12 +1230,12 @@ function refresh() {
 }
 
 function exportCSV() {
-  const rows=[['Card Name','Set','Rarity','Color','Condition','Foil','Price (AUD)','Market Price (USD)','vs Market','Added','SKU','URL']];
+  const rows=[['Card Name','Set','Rarity','Color','Condition','Foil','Price (AUD)','Market Price (USD)','vs Market','Qty In Stock','Added','SKU','URL']];
   for (const c of filtered) {
     const sf=getSF(c.name);
     const mkt=sf?.usd?sf.usd.toFixed(2):'';
     const ratio=sf?.usd?Math.round((c.price/(sf.usd/AUD_USD)-1)*100)+'%':'';
-    rows.push([`"${c.name.replace(/"/g,'""')}"`,`"${c.set.replace(/"/g,'""')}"`,c.rarity,c.color,c.cond,c.foil?'Yes':'No',c.price.toFixed(2),mkt,ratio,new Date(c.added).toISOString().slice(0,10),c.sku,`"${AREA52_BASE}/products/${c.handle}"`]);
+    rows.push([`"${c.name.replace(/"/g,'""')}"`,`"${c.set.replace(/"/g,'""')}"`,c.rarity,c.color,c.cond,c.foil?'Yes':'No',c.price.toFixed(2),mkt,ratio,c.qty||'',new Date(c.added).toISOString().slice(0,10),c.sku,`"${AREA52_BASE}/products/${c.handle}"`]);
   }
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
   a.download=`area52_mtg_${new Date().toISOString().slice(0,10)}.csv`; a.click();
@@ -1160,6 +1281,7 @@ function colorPip(color) {
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+syncViewButtons();
 loadAll();
 
 // ── PWA: register service worker + install button ─────────────────────────────
